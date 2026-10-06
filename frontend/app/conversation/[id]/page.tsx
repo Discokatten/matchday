@@ -1,7 +1,7 @@
 import Wrapper from '@/app/components/Wrapper';
 import MOCK_MESSAGES from '@/app/_MOCKDATA/MOCK_MESSAGES.json';
 import DisplayMessage from '@/app/components/DisplayMessage';
-import { Message } from '@/app/lib/interfaces/messageInterface';
+import { Message } from '@/app/lib/interfaces/userInterface';
 
 export default async function Conversation({
   params,

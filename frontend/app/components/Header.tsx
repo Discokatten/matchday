@@ -1,7 +1,12 @@
 import Link from 'next/link';
 import Wrapper from './Wrapper';
+import LogoutButton from './LogoutButton';
 
-export default function Header() {
+export default function Header({
+  isAuthenticated,
+}: {
+  isAuthenticated: boolean;
+}) {
   return (
     <header className='flex justify-around m-5'>
       <Link href='/' className='border-b border-primary-dark/20 px-6 py-6'>
@@ -11,7 +16,14 @@ export default function Header() {
       </Link>
       <div className='max-w-25 text-center opacity-50'>
         <Wrapper>
-          <Link href='/login'>Logga in</Link>
+          {isAuthenticated ? (
+            <>
+              <Link href='/dashboard'>Matcher</Link>
+              <LogoutButton />
+            </>
+          ) : (
+            <Link href='/login'>Logga in</Link>
+          )}
         </Wrapper>
       </div>
     </header>

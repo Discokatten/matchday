@@ -5,11 +5,11 @@ import Link from 'next/link';
 import { loginSchema, LoginFormValues } from '@/app/lib/schemas/loginSchema';
 import InputField from '@/app/components/InputField';
 import Wrapper from '@/app/components/Wrapper';
-// import { useRouter } from 'next/router';
+import { loginUser } from '@/app/services/auth';
+import { useRouter } from 'next/navigation';
 
-export default function LoginForm() {
-  // const router = useRouter();
-  // const AUTH_URL = "/api/auth/login"
+export default function LoginForm({ notice }: { notice?: string }) {
+  const router = useRouter();
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     mode: 'onChange',
@@ -17,8 +17,25 @@ export default function LoginForm() {
   });
 
   const submit = form.handleSubmit(async (data) => {
-    // const res = await
-    // await login(data)
+    try {
+      await loginUser(data);
+      const requestedPath = new URLSearchParams(window.location.search).get(
+        'redirect',
+      );
+      const redirectUrl =
+        requestedPath?.startsWith('/') &&
+        !requestedPath.startsWith('//') &&
+        !requestedPath.includes('\\')
+          ? requestedPath
+          : '/dashboard';
+      router.replace(redirectUrl);
+      router.refresh();
+    } catch (error) {
+      form.setError('root', {
+        message:
+          error instanceof Error ? error.message : 'Inloggningen misslyckades.',
+      });
+    }
   });
 
   return (
@@ -33,30 +50,37 @@ export default function LoginForm() {
         </Link>
       }
     >
-      <InputField
-        control={form.control}
-        name='email'
-        label='E-post'
-        placeholder='E-post'
-        type='email'
-        autoComplete='email'
-      />
-      <InputField
-        control={form.control}
-        name='password'
-        label='Lösenord'
-        placeholder='Lösenord'
-        type='password'
-        autoComplete='current-password'
-      />
-      <button
-        type='button'
-        disabled={!form.formState.isValid}
-        onClick={submit}
-        className='rounded-lg max-h-15 bg-primary p-2 font-medium text-white dark:text-black transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:bg-muted'
-      >
-        Logga in
-      </button>
+      {notice && <p role='status'>{notice}</p>}
+      <form onSubmit={submit} className='grid gap-4'>
+        <InputField
+          control={form.control}
+          name='email'
+          label='E-post'
+          placeholder='E-post'
+          type='email'
+          autoComplete='email'
+        />
+        <InputField
+          control={form.control}
+          name='password'
+          label='Lösenord'
+          placeholder='Lösenord'
+          type='password'
+          autoComplete='current-password'
+        />
+        {form.formState.errors.root && (
+          <p role='alert' className='text-sm text-error'>
+            {form.formState.errors.root.message}
+          </p>
+        )}
+        <button
+          type='submit'
+          disabled={!form.formState.isValid || form.formState.isSubmitting}
+          className='rounded-lg max-h-15 bg-primary p-2 font-medium text-white dark:text-black transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:bg-muted'
+        >
+          {form.formState.isSubmitting ? 'Loggar in…' : 'Logga in'}
+        </button>
+      </form>
     </Wrapper>
   );
 }
