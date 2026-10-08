@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  AUTH_COOKIE_NAME,
+  DEVELOPMENT_BASIC_TOKEN_PREFIX,
+  getAuthCookieOptions,
+} from '../../../lib/authSession';
 import { loginSchema } from '../../../lib/schemas/loginSchema';
-import { DEVELOPMENT_MOCK_TOKEN } from '../../../lib/authSession';
 import { isNextResponse, postToAuthApi } from '../authApi';
 
 export async function POST(request: NextRequest) {
   const body: unknown = await request.json().catch(() => null);
   const parsed = loginSchema.safeParse(body);
+
   if (!parsed.success) {
     return NextResponse.json(
       { message: 'Ange en giltig e-postadress och ett lösenord.' },
@@ -14,17 +19,29 @@ export async function POST(request: NextRequest) {
   }
 
   if (process.env.NODE_ENV === 'development') {
+    if (parsed.data.email.includes(':')) {
+      return NextResponse.json(
+        { message: 'Användarnamnet får inte innehålla kolon.' },
+        { status: 400 },
+      );
+    }
+
+    const credentials = Buffer.from(
+      `${parsed.data.email}:${parsed.data.password}`,
+      'utf8',
+    ).toString('base64url');
+
     const response = NextResponse.json({
       authenticated: true,
-      mock: true,
+      development: true,
     });
-    response.cookies.set('token', DEVELOPMENT_MOCK_TOKEN, {
-      httpOnly: true,
-      secure: false,
-      sameSite: 'strict',
-      path: '/',
-      maxAge: 60 * 60 * 24,
-    });
+
+    response.cookies.set(
+      AUTH_COOKIE_NAME,
+      `${DEVELOPMENT_BASIC_TOKEN_PREFIX}${credentials}`,
+      getAuthCookieOptions(false),
+    );
+
     return response;
   }
 
@@ -40,6 +57,7 @@ export async function POST(request: NextRequest) {
     typeof result.data.token === 'string'
       ? result.data.token
       : null;
+
   if (!token) {
     return NextResponse.json(
       { message: 'Inloggningssvaret saknar en giltig token.' },
@@ -48,12 +66,11 @@ export async function POST(request: NextRequest) {
   }
 
   const response = NextResponse.json({ authenticated: true });
-  response.cookies.set('token', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    path: '/',
-    maxAge: 60 * 60 * 24,
-  });
+  response.cookies.set(
+    AUTH_COOKIE_NAME,
+    token,
+    getAuthCookieOptions(process.env.NODE_ENV === 'production'),
+  );
+
   return response;
 }

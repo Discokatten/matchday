@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DEVELOPMENT_MOCK_TOKEN } from '../../../lib/authSession';
+import {
+  AUTH_COOKIE_NAME,
+  DEVELOPMENT_BASIC_TOKEN_PREFIX,
+  getAuthCookieOptions,
+} from '../../../lib/authSession';
+import { isApplicationIdentityRequiredProblem } from '../../../lib/authErrors';
 
 const backendUrl = (process.env.API_URL ?? 'http://localhost:8080').replace(
   /\/$/,
@@ -10,33 +15,53 @@ type RouteContext = {
   params: Promise<{ path: string[] }>;
 };
 
+function buildAuthorizationHeader(token: string): string {
+  if (token.startsWith(DEVELOPMENT_BASIC_TOKEN_PREFIX)) {
+    return `Basic ${Buffer.from(
+      token.slice(DEVELOPMENT_BASIC_TOKEN_PREFIX.length),
+      'base64url',
+    ).toString('base64')}`;
+  }
+
+  return `Bearer ${token}`;
+}
+
 async function forwardRequest(
   request: NextRequest,
   context: RouteContext,
 ): Promise<Response> {
-  const token = request.cookies.get('token')?.value;
+  const token = request.cookies.get(AUTH_COOKIE_NAME)?.value;
+
   if (!token) {
     return NextResponse.json(
       { message: 'Inloggning krävs.' },
       { status: 401 },
     );
   }
-  if (token === DEVELOPMENT_MOCK_TOKEN) {
+
+  const isDevelopmentBasicToken = token.startsWith(
+    DEVELOPMENT_BASIC_TOKEN_PREFIX,
+  );
+
+  if (isDevelopmentBasicToken && process.env.NODE_ENV !== 'development') {
     return NextResponse.json(
-      { message: 'Backend-anrop är inte tillgängliga med utvecklingsinloggning.' },
-      { status: 503 },
+      { message: 'Utvecklingsinloggning är endast tillgänglig i development.' },
+      { status: 401 },
     );
   }
 
+  const authorization = buildAuthorizationHeader(token);
   const { path } = await context.params;
   const backendPath = path.map(encodeURIComponent).join('/');
   const target = new URL(
     `/api/v1/${backendPath}${request.nextUrl.search}`,
     backendUrl,
   );
+
   const headers = new Headers({
-    Authorization: `Bearer ${token}`,
+    Authorization: authorization,
   });
+
   const contentType = request.headers.get('content-type');
   const accept = request.headers.get('accept');
   if (contentType) headers.set('Content-Type', contentType);
@@ -52,24 +77,33 @@ async function forwardRequest(
           : await request.arrayBuffer(),
       cache: 'no-store',
     });
+
     const responseHeaders = new Headers();
     const upstreamContentType = upstream.headers.get('content-type');
     if (upstreamContentType) {
       responseHeaders.set('Content-Type', upstreamContentType);
     }
+
+    const isApplicationIdentityError =
+      upstream.status === 401 &&
+      (await upstream
+        .clone()
+        .json()
+        .then((body: unknown) => isApplicationIdentityRequiredProblem(body))
+        .catch(() => false));
+
     const response = new NextResponse(upstream.body, {
       status: upstream.status,
       headers: responseHeaders,
     });
-    if (upstream.status === 401) {
-      response.cookies.set('token', '', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        path: '/',
+
+    if (upstream.status === 401 && !isApplicationIdentityError) {
+      response.cookies.set(AUTH_COOKIE_NAME, '', {
+        ...getAuthCookieOptions(process.env.NODE_ENV === 'production'),
         maxAge: 0,
       });
     }
+
     return response;
   } catch {
     return NextResponse.json(

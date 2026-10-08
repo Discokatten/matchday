@@ -1,28 +1,43 @@
 'use client';
-import { useForm } from 'react-hook-form';
+
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import InputField from '@/app/components/InputField';
+import Wrapper from '@/app/components/Wrapper';
 import {
   registerUserSchema,
-  RegisterUserFormValues,
+  type RegisterUserFormValues,
 } from '@/app/lib/schemas/registerUserSchema';
-import Wrapper from '@/app/components/Wrapper';
-import InputField from '@/app/components/InputField';
 import { registerUser } from '@/app/services/auth';
-import { useRouter } from 'next/navigation';
+
+const defaultValues: RegisterUserFormValues = {
+  email: '',
+  password: '',
+  confirmPassword: '',
+};
 
 export default function RegisterUserForm() {
   const router = useRouter();
   const form = useForm<RegisterUserFormValues>({
     resolver: zodResolver(registerUserSchema),
     mode: 'onChange',
-    defaultValues: { email: '', password: '', confirmPassword: '' },
+    defaultValues,
   });
+
+  const rootError = form.formState.errors.root?.message;
+  const isSubmitDisabled =
+    !form.formState.isValid || form.formState.isSubmitting;
+  const submitButtonLabel = form.formState.isSubmitting
+    ? 'Skapar konto…'
+    : 'Skapa konto';
 
   const submit = form.handleSubmit(async (data) => {
     try {
       await registerUser(data);
       router.replace('/login?registered=true');
+      router.refresh();
     } catch (error) {
       form.setError('root', {
         message:
@@ -53,6 +68,7 @@ export default function RegisterUserForm() {
           type='email'
           autoComplete='email'
         />
+
         <InputField
           control={form.control}
           name='password'
@@ -61,6 +77,7 @@ export default function RegisterUserForm() {
           type='password'
           autoComplete='new-password'
         />
+
         <InputField
           control={form.control}
           name='confirmPassword'
@@ -69,17 +86,19 @@ export default function RegisterUserForm() {
           type='password'
           autoComplete='new-password'
         />
-        {form.formState.errors.root && (
+
+        {rootError && (
           <p role='alert' className='text-sm text-error'>
-            {form.formState.errors.root.message}
+            {rootError}
           </p>
         )}
+
         <button
           type='submit'
-          disabled={!form.formState.isValid || form.formState.isSubmitting}
-          className='rounded-lg max-h-15 bg-primary p-2 font-medium text-white transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:bg-muted'
+          disabled={isSubmitDisabled}
+          className='max-h-15 rounded-lg bg-primary p-2 font-medium text-white transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:bg-muted'
         >
-          {form.formState.isSubmitting ? 'Skapar konto…' : 'Skapa konto'}
+          {submitButtonLabel}
         </button>
       </form>
     </Wrapper>

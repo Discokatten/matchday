@@ -1,3 +1,3 @@
 export default function Conversation() {
-  return;
+  return null;
 }

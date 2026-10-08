@@ -5,7 +5,7 @@ import './globals.css';
 import Header from './components/Header';
 import AuthSessionHandler from './components/AuthSessionHandler';
 import {
-  DEVELOPMENT_MOCK_TOKEN,
+  DEVELOPMENT_BASIC_TOKEN_PREFIX,
   hasAuthSession,
 } from './lib/authSession';
 
@@ -29,9 +29,9 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
   const cookieStore = await cookies();
   const token = cookieStore.get('token')?.value;
   const isAuthenticated = hasAuthSession(token);
-  const isDevelopmentMock =
+  const isDevelopmentBasic =
     process.env.NODE_ENV === 'development' &&
-    token === DEVELOPMENT_MOCK_TOKEN;
+    token?.startsWith(DEVELOPMENT_BASIC_TOKEN_PREFIX);
 
   return (
     <html
@@ -41,13 +41,13 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
       <body>
         <AuthSessionHandler />
         <Header isAuthenticated={isAuthenticated} />
-        {isDevelopmentMock && (
+        {isDevelopmentBasic && (
           <p
             role='status'
             className='mx-auto max-w-3xl px-4 text-center text-sm text-error'
           >
-            Utvecklingsinloggning: detta är en tillfällig mock, inte riktig
-            autentisering. Backend-anrop kräver fungerande backend-auth.
+            Utvecklingsinloggning: backend-anrop använder Basic Auth från
+            inloggningsformuläret.
           </p>
         )}
         {children}

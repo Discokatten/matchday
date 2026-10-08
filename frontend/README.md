@@ -35,19 +35,40 @@ Backend behöver implementera följande JSON-endpoints:
 Felsvar kan innehålla `{ "message": "..." }`. Frontend skickar inte
 `confirmPassword` till backend. Backendens token ska vara ett Bearer-token som backend själv validerar och bör upphöra att gälla inom 24 timmar.
 
-Vid `npm run dev` används i stället en tillfällig mock-inloggning: registrering accepterar giltiga
-formulär utan att skapa en användare, och inloggning accepterar alla uppgifter som klarar
-formulärvalideringen. Mock-sessionen låter dig prova skyddad navigering och UI, men backend-anrop
-avvisas med `503` och mock-token skickas aldrig vidare. Mocken är avstängd utanför development
-och ska inte användas för att skydda eller testa riktiga data.
+Vid `npm run dev` använder inloggningen backendens lokala Basic Auth. Ange samma användarnamn och
+lösenord som `MATCHDAY_LOCAL_USERNAME` och `MATCHDAY_LOCAL_PASSWORD` på backend, exempelvis
+`local-operator` och `local-dev-password` från Compose. Next lagrar de tillfälliga
+utvecklingsuppgifterna i en HttpOnly-cookie och skickar Basic Auth endast server-till-server via
+API-proxyn. Den här utvecklingsvägen är avstängd utanför development. Registreringsformuläret är
+fortfarande en mock och skapar ingen backend-användare.
 
 Efter lyckad inloggning lagrar frontend token i en `HttpOnly`, `SameSite=Strict`-cookie. Next skyddar navigering till `/dashboard` och `/conversation/...` genom att kontrollera att cookien finns.
 Skyddade API-anrop skickas via `/api/backend/...`; Next läser cookien på serversidan och vidarebefordrar token som `Authorization: Bearer ...` till motsvarande `/api/v1/...`-endpoint.
 Om backend svarar med `401` tas cookien bort och klienten skickas till inloggningen. Backend måste fortfarande validera token och neka obehöriga anrop.
 
-Route-guardens cookie-kontroll är endast navigeringsskydd, inte en säkerhetsgräns.
+Route-guardens cookie-kontroll är endast navigeringsskydd, inte en säkerhetsgräns. Backendens
+lokala Basic Auth-användare autentiseras, men circle-endpoints kräver dessutom att backend kan
+översätta den inloggade användaren till en applikationsidentitet. Om backend svarar med
+`urn:matchday:problem:authentication-required` saknas den kopplingen; frontend behåller då
+inloggningen men kan inte slutföra circle-anropet.
 
 `API_URL` ska vara nåbar från Next-servern. Använd exempelvis `http://localhost:8080` vid lokal körning och `http://backend:8080` från frontend-containern i Docker Compose.
+
+## Circle API
+
+Matchkort länkar till `/conversation/{matchId}`. Samtalsvyn använder backendens match-circle
+endpoints genom den skyddade frontend-proxyn:
+
+| Metod | Endpoint | Frontend-funktion |
+| --- | --- | --- |
+| `GET` | `/api/v1/matches/{matchId}/circle` | Hämta circle och aktuell medlemsstatus |
+| `POST` | `/api/v1/matches/{matchId}/circle` | Skapa circle och bli första medlem |
+| `PUT` | `/api/v1/matches/{matchId}/circle/membership` | Gå med |
+| `DELETE` | `/api/v1/matches/{matchId}/circle/membership` | Lämna |
+
+Ett `404` från GET betyder att matchen saknar en circle; samtalsvyn erbjuder då att skapa en.
+Svaret innehåller circle-ID, match-ID, skapandetid och `membershipActive`. Backendens circle-API
+hanterar inte meddelanden, så meddelandeutbyte ingår inte i den här kopplingen.
 
 ## Kvalitetskontroller
 

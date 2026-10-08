@@ -1,7 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
-import { Match } from '../lib/interfaces/matchInterface';
+import type { Match } from '../lib/interfaces/matchInterface';
 import Card from './Card';
 
 const MATCHES_PER_PAGE = 20;
@@ -17,26 +18,28 @@ export default function GamesComponent({ heading, matches }: GameProps) {
 
   return (
     <section className='flex min-w-0 flex-1 flex-col items-center'>
-      <h2 className='flex justify-center py-5 border-b border-primary-dark/20'>
+      <h2 className='flex justify-center border-b border-primary-dark/20 py-5'>
         {heading}
       </h2>
-      <div className='mt-6 grid grid-cols-1 '>
+
+      <div className='mt-6 grid grid-cols-1'>
         {matches.length === 0 ? (
           <p className='m-4 text-center text-sm text-muted'>
             Inga matcher att visa.
           </p>
         ) : (
           visibleMatches.map((match) => (
-            <Card
-              key={match.id}
-              id={match.id}
-              team1={match.homeTeamName}
-              team2={match.awayTeamName}
-              round={match.round}
-              date={match.scheduledDate}
-            />
+            <Link key={match.id} href={`/conversation/${match.id}`}>
+              <Card
+                homeTeamName={match.homeTeamName}
+                awayTeamName={match.awayTeamName}
+                round={match.round}
+                date={match.scheduledDate}
+              />
+            </Link>
           ))
         )}
+
         {visibleCount < matches.length && (
           <button
             type='button'

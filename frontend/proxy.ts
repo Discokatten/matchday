@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { hasAuthSession } from './app/lib/authSession';
+import { AUTH_COOKIE_NAME, hasAuthSession } from './app/lib/authSession';
 
 const protectedRoutes = ['/dashboard', '/conversation'];
 const authRoutes = ['/login', '/register'];
@@ -9,7 +9,7 @@ function matchesRoute(pathname: string, route: string): boolean {
 }
 
 export function proxy(request: NextRequest) {
-  const hasSession = hasAuthSession(request.cookies.get('token')?.value);
+  const hasSession = hasAuthSession(request.cookies.get(AUTH_COOKIE_NAME)?.value);
   const { pathname } = request.nextUrl;
 
   if (

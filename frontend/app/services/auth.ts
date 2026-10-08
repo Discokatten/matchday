@@ -1,26 +1,40 @@
 import type { LoginFormValues } from '../lib/schemas/loginSchema';
 import type { RegisterUserFormValues } from '../lib/schemas/registerUserSchema';
 
+const JSON_CONTENT_TYPE = 'application/json';
+const DEFAULT_AUTH_ERROR_MESSAGE = 'Autentiseringen misslyckades.';
+const LOGOUT_ERROR_MESSAGE = 'Det gick inte att logga ut.';
+
+type AuthRequestBody = Record<string, unknown>;
+
+function getErrorMessage(result: unknown, fallbackMessage: string): string {
+  if (typeof result === 'object' && result !== null && 'message' in result) {
+    const { message } = result;
+    if (typeof message === 'string' && message.trim().length > 0) {
+      return message;
+    }
+  }
+
+  return fallbackMessage;
+}
+
+// Shared POST helper for auth endpoints. Keeps request handling and error parsing
+// consistent across login, registration and logout.
 async function postAuthRequest(
   path: string,
-  body: Record<string, string>,
+  body?: AuthRequestBody,
+  fallbackMessage = DEFAULT_AUTH_ERROR_MESSAGE,
 ): Promise<void> {
   const response = await fetch(path, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    headers: body ? { 'Content-Type': JSON_CONTENT_TYPE } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
   });
 
   const result: unknown = await response.json().catch(() => null);
+
   if (!response.ok) {
-    const message =
-      typeof result === 'object' &&
-      result !== null &&
-      'message' in result &&
-      typeof result.message === 'string'
-        ? result.message
-        : 'Autentiseringen misslyckades.';
-    throw new Error(message);
+    throw new Error(getErrorMessage(result, fallbackMessage));
   }
 }
 
@@ -35,9 +49,6 @@ export function registerUser({
   return postAuthRequest('/api/auth/register', { email, password });
 }
 
-export async function logoutUser(): Promise<void> {
-  const response = await fetch('/api/auth/logout', { method: 'POST' });
-  if (!response.ok) {
-    throw new Error('Det gick inte att logga ut.');
-  }
+export function logoutUser(): Promise<void> {
+  return postAuthRequest('/api/auth/logout', undefined, LOGOUT_ERROR_MESSAGE);
 }

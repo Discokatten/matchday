@@ -10,12 +10,12 @@ export default function DisplayMessage({
   message,
 }: MessageProps) {
   return (
-    <div className='text-sm mt-3 border-b border-muted/30 p-2'>
-      <div className='flex justify-between mb-1'>
-        <li>{username}</li>
-        <li className='text-muted'>{date}</li>
+    <div className='mt-3 border-b border-muted/30 p-2 text-sm'>
+      <div className='mb-1 flex justify-between'>
+        <span>{username}</span>
+        <time className='text-muted'>{date}</time>
       </div>
-      <li>{message}</li>
+      <p>{message}</p>
     </div>
   );
 }

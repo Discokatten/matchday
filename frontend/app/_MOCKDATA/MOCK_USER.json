@@ -1,0 +1,9 @@
+{
+  "INVALID_EMAIL": "mail;@example.com",
+  "VALID_EMAIL": "mail@example.com",
+  "VALID_PASSWORD": "correct-horse-battery",
+  "INVALID_PASSWORD": "different-password",
+  "VALID_DEV_MOCK_USERNAME": "local-operator",
+  "INVALID_DEV_MOCK_USERNAME": "local:operator",
+  "STRING": "not-an-email"
+}
