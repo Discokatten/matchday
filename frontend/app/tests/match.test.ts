@@ -47,6 +47,7 @@ describe('isMatch type guard', () => {
       expect(isMatch({ ...validMatch, season: '2024' })).toBe(false);
 
       // homeTeamName missing
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Destructuring removes this field from the test object.
       const { homeTeamName, ...missingHomeTeam } = validMatch;
       expect(isMatch(missingHomeTeam)).toBe(false);
     });

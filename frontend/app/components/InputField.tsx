@@ -1,7 +1,8 @@
 'use client';
-import { Controller, Control, FieldValues, Path } from 'react-hook-form';
 
-type Props<T extends FieldValues> = {
+import { Controller, type Control, type FieldValues, type Path } from 'react-hook-form';
+
+type InputFieldProps<T extends FieldValues> = {
   control: Control<T>;
   name: Path<T>;
   label: string;
@@ -18,7 +19,7 @@ export default function InputField<T extends FieldValues>({
   placeholder,
   type = 'text',
   autoComplete,
-}: Props<T>) {
+}: InputFieldProps<T>) {
   return (
     <Controller
       control={control}
@@ -36,7 +37,7 @@ export default function InputField<T extends FieldValues>({
             autoComplete={autoComplete}
             {...field}
           />
-          <p className='min-h-5 text-sm mt-2 text-error'>
+          <p className='mt-2 min-h-5 text-sm text-error'>
             {fieldState.error?.message}
           </p>
         </div>

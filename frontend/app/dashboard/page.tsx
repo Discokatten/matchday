@@ -1,6 +1,6 @@
 import GamesComponent from '@/app/components/GamesComponent';
 import { getMatches } from '@/app/services/matchApi';
-import { Match } from '../lib/interfaces/matchInterface';
+import type { Match } from '../lib/interfaces/matchInterface';
 
 export default async function Dashboard() {
   let matches: Match[];
@@ -12,7 +12,7 @@ export default async function Dashboard() {
     );
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : 'An unexpected error occurred.';
+      error instanceof Error ? error.message : 'Ett oväntat fel inträffade.';
 
     return (
       <p role='alert' className='mx-auto mt-12 max-w-xl text-center text-error'>
@@ -30,7 +30,7 @@ export default async function Dashboard() {
   );
 
   return (
-    <div className='flex items-start justify-around gap-4 px-4'>
+    <div className='flex flex-col items-start justify-around gap-4 px-4 md:flex-row'>
       <GamesComponent heading='Tidigare Matcher' matches={previousMatches} />
       <GamesComponent heading='Kommande Matcher' matches={upcomingMatches} />
     </div>
